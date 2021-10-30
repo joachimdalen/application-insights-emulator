@@ -8,7 +8,10 @@ args
     "Optional. Location to store datbase files, default is current working directory",
     process.cwd()
   )
-  .option(["s", "silent"], "Optional. Disable logging to onsole");
+  .option(["s", "silent"], "Optional. Disable logging to onsole")
+  .option(["", "noMetrics"], "Track app metrics")
+  .option(["", "noTraces"], "Track app traces")
+  .option(["", "noRequests"], "Track app requests");
 
 export default class Environment {
   private flags = args.parse(process.argv);
@@ -26,5 +29,23 @@ export default class Environment {
       return true;
     }
     return false;
+  }
+  public trackAppMetrics(): boolean {
+    if (this.flags.noMetrics !== undefined) {
+      return false;
+    }
+    return true;
+  }
+  public trackAppTraces(): boolean {
+    if (this.flags.noTraces !== undefined) {
+      return false;
+    }
+    return true;
+  }
+  public trackAppRequests(): boolean {
+    if (this.flags.noRequests !== undefined) {
+      return false;
+    }
+    return true;
   }
 }

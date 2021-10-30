@@ -16,7 +16,10 @@ async function main() {
   const location = await env.location();
   const config = new ApplicationInsightsConfiguration(
     env.port(),
-    path.join(location, DB_NAME)
+    path.join(location, DB_NAME),
+    env.trackAppMetrics(),
+    env.trackAppTraces(),
+    env.trackAppRequests()
   );
   const server = new ApplicationInsightsServer(config);
 
