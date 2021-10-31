@@ -2,7 +2,7 @@ import args from "args";
 import { DEFAULT_PORT } from "./Constants";
 
 args
-  .option(["", "port"], "Optional. The port to listen on", DEFAULT_PORT)
+  .option(["p", "port"], "Optional. The port to listen on", DEFAULT_PORT)
   .option(
     ["l", "location"],
     "Optional. Location to store datbase files, default is current working directory",

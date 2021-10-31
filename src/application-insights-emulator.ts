@@ -23,9 +23,12 @@ async function main() {
   );
   const server = new ApplicationInsightsServer(config);
 
-  await server.start().then(() => {
-    console.log(`Server listening on port: ${chalk.blue(env.port())}`);
-  });
+  await server
+    .start()
+    .then(() => {
+      console.log(`Server listening on port: ${chalk.blue(env.port())}`);
+    })
+    .catch((err) => console.error(err));
 
   process
     .once("message", (msg) => {
