@@ -31,6 +31,8 @@
     "typescript": "^4.4.4"
   },
   "dependencies": {
+    "@kusto/language-service": "^0.0.32",
+    "@kusto/language-service-next": "^0.0.51",
     "args": "^5.0.1",
     "chalk": "^4.1.2",
     "express": "^4.17.1",
