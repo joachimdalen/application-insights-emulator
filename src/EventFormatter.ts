@@ -2,30 +2,80 @@ interface IAppInEvent {}
 type DynamicObject = { [key: string]: any };
 
 class EventFormatter {
-  private _mapping: {
-    [key: string]: string | ((value: DynamicObject) => object);
+  private _keyMapping: {
+    [key: string]: string;
   } = {
     time: "timestamp",
-    responseCode: "resultCode",
-    tags: this.formatTags,
-    properties: this.formatProperties,
+    "data.baseData.responseCode": "resultCode",
+    name: "eventType",
+    "data.baseData.properties": "customDimensions",
   };
+  private _valueMapping: {
+    [key: string]: (value: DynamicObject) => object;
+  } = {
+    tags: this.formatTags,
+  };
+  private _prefixStrip: string[] = ["tags.", "data.", "baseData."];
+  private _noFlatMap: string[] = [
+    "data.baseData.properties",
+    "data.baseData.metrics",
+  ];
 
-  public formatEvent() {
-    this.formatTags();
-    this.formatProperties();
+  public formatEvent(event: any): DynamicObject {
+    return this.flattenObject(event);
   }
 
-  private formatTags() {
-    const tags: DynamicObject = {
-      "ai.cloud.roleInstance": "dev-desktop.(none)",
-      "ai.operation.id": "d3fb79de48afde42a86a43b7d91d98ae",
-      "ai.operation.parentId": "233e461d5732db40",
-      "ai.operation.name": "VersionedHttpTrigger",
-      "ai.location.ip": "127.0.0.1",
-      "ai.internal.sdkVersion": "azurefunctionscoretools: 3.0.3734",
-    };
+  private formatObject(k: string, obj: any): DynamicObject {
+    let parsed: DynamicObject = {};
+    Object.keys(obj).map((k) => {
+      if (this.isObject(obj[k])) {
+        const keyName = this._keyMapping[k];
+        const valueMapping = this._valueMapping[k];
+        if (valueMapping !== undefined) {
+          if (keyName === "..") {
+            parsed = {
+              ...parsed,
+              ...valueMapping(obj[k]),
+            };
+          } else {
+            parsed = {
+              ...parsed,
+              ...{ [keyName || k]: { ...valueMapping(obj[k]) } },
+            };
+          }
+        } else {
+          parsed = {
+            ...parsed,
+            ...{
+              [keyName || k]: {
+                ...this.formatObject(keyName || k, obj[k]),
+              },
+            },
+          };
+        }
+      } else {
+        console.log(k);
+        parsed = {
+          ...parsed,
+          ...this.formatEntry(k, obj[k]),
+        };
+      }
+    });
+    return parsed;
+  }
 
+  private formatEntry(key: string, entry: any): DynamicObject {
+    const keyName = this._keyMapping[key];
+    return { [keyName || key]: entry };
+  }
+  private isObject(val: any) {
+    if (val === null) {
+      return false;
+    }
+    return typeof val === "function" || typeof val === "object";
+  }
+
+  private formatTags(tags: any) {
     const parsed: DynamicObject = {};
 
     Object.keys(tags).map((key: string) => {
@@ -43,37 +93,48 @@ class EventFormatter {
           : keyParts[0];
       parsed[newKey] = val;
     });
-    console.log(parsed);
+
     return parsed;
   }
 
-  private formatProperties() {
-    const properties: DynamicObject = {
-      LogLevel: "Information",
-      prop__invocationId: "ee8eb64f-eea9-4223-a081-927bacc9ce6c",
-      InvocationId: "ee8eb64f-eea9-4223-a081-927bacc9ce6c",
-      HostInstanceId: "a3fa3d9d-508b-4a2a-ba22-e178478f84ae",
-      Category: "Function.VersionedHttpTrigger",
-      prop__reason:
-        "This function was programmatically called via the host APIs.",
-      prop__functionName: "VersionedHttpTrigger",
-      EventName: "FunctionStarted",
-      ProcessId: "46677",
-      "prop__{OriginalFormat}":
-        "Executing '{functionName}' (Reason='{reason}', Id={invocationId})",
-      EventId: "1",
+  private flattenObject(obj: object, keySeparator = ".") {
+    const flattenObjectRecursive = (
+      obj: object,
+      parentProperty?: string,
+      propertyMap: Record<string, unknown> = {}
+    ) => {
+      for (const [key, value] of Object.entries(obj)) {
+        const property = parentProperty
+          ? `${parentProperty}${keySeparator}${key}`
+          : key;
+        const namedKey = this._keyMapping[property];
+        const valueMapping = this._valueMapping[namedKey || property];
+        const usableKey = namedKey || this.stripIfNeeded(property);
+        if (
+          value &&
+          typeof value === "object" &&
+          !this._noFlatMap.includes(property)
+        ) {
+          flattenObjectRecursive(
+            valueMapping !== undefined ? valueMapping(value) : value,
+            property,
+            propertyMap
+          );
+        } else {
+          propertyMap[usableKey] =
+            valueMapping !== undefined ? valueMapping(value) : value;
+        }
+      }
+      return propertyMap;
     };
+    return flattenObjectRecursive(obj);
+  }
 
-    const parsed: DynamicObject = {};
-
-    Object.keys(properties).map((key: string) => {
-      const val: any = properties[key];
-      const newKey = `customDimensions.${key}`;
-      parsed[newKey] = val;
-    });
-    console.log(parsed);
-    return parsed;
+  private stripIfNeeded(key: string) {
+    let newKey = key;
+    this._prefixStrip.forEach((x) => (newKey = newKey.replace(x, "")));
+    return newKey;
   }
 }
 
-new EventFormatter().formatEvent();
+export default EventFormatter;

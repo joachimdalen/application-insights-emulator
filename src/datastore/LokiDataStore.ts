@@ -3,11 +3,14 @@ import Loki from "lokijs";
 import { stat } from "fs";
 import { IAppMetric, IAppRequest, IAppTrace } from "../types";
 import chalk from "chalk";
+import EventFormatter from "../EventFormatter";
 
 export class LokiDataStore implements IDataStore {
   private readonly db: Loki;
+  private readonly formatter: EventFormatter;
   public constructor(public readonly path: string) {
     this.db = new Loki(path);
+    this.formatter = new EventFormatter();
   }
 
   public async close(): Promise<void> {
@@ -22,6 +25,44 @@ export class LokiDataStore implements IDataStore {
     });
   }
 
+  private addTransforms(col: Collection<any>) {
+    const tx: Transform[] = [
+      {
+        type: "find",
+        value: {
+          iKey: "[%lktxp]appId",
+        },
+      },
+    ];
+    col.addTransform("ByKey", tx);
+  }
+
+  public async runQuery(appId: string) {
+    return await new Promise<any>((resolve, reject) => {
+      const col = this.db.getCollection("AppMetrics");
+      // const tx = col.getTransform("ByKey");
+      // console.log(tx);
+      // if (tx === undefined) {
+      //
+      // }
+      console.log(appId);
+      //this.addTransforms(col);
+      const result = col
+        .chain()
+        .find({ iKey: { $eq: appId } })
+        //.find({ cloud_RoleInstance: "dev-desktop.(none)" })
+        .limit(10)
+        .data();
+      console.log(result);
+      resolve(result);
+      // try {
+
+      // } catch (error) {
+      //   reject(error);
+      // }
+    });
+  }
+
   public async init(): Promise<void> {
     await new Promise<void>((resolve, reject) => {
       stat(this.path, (statError, stats) => {
@@ -30,6 +71,7 @@ export class LokiDataStore implements IDataStore {
             if (dbError) {
               reject(dbError);
             } else {
+              console.log("Load database");
               resolve();
             }
           });
@@ -41,17 +83,24 @@ export class LokiDataStore implements IDataStore {
     });
 
     if (this.db.getCollection("AppMetrics") === null) {
-      this.db.addCollection<IAppMetric>("AppMetrics", {
+      this.db.addCollection("AppMetrics");
+      this.db.addCollection("AppMetricsRaw", {
         indices: ["iKey"],
       });
     }
     if (this.db.getCollection("AppRequests") === null) {
-      this.db.addCollection<IAppRequest>("AppRequests", {
+      this.db.addCollection("AppRequests", {
+        indices: ["iKey"],
+      });
+      this.db.addCollection("AppRequestsRaw", {
         indices: ["iKey"],
       });
     }
     if (this.db.getCollection("AppTraces") === null) {
-      this.db.addCollection<IAppTrace>("AppTraces", {
+      this.db.addCollection("AppTraces", {
+        indices: ["iKey"],
+      });
+      this.db.addCollection("AppTracesRaw", {
         indices: ["iKey"],
       });
     }
@@ -69,18 +118,26 @@ export class LokiDataStore implements IDataStore {
 
   public async trackEvent(event: any): Promise<void> {
     const { name } = event;
+    const formatted = this.formatter.formatEvent(event);
     switch (name) {
       case "AppMetrics": {
         const metric = event as IAppMetric;
-        const col = this.db.getCollection<IAppMetric>("AppMetrics");
-        col.insert(metric);
+        const col = this.db.getCollection("AppMetrics");
+        col.insert(formatted);
+
+        const colRaw = this.db.getCollection("AppMetricsRaw");
+        colRaw.insert(metric);
+
         console.log(`[${chalk.blue(name)}]: Tracked`);
         break;
       }
       case "AppRequests": {
         const request = event as IAppRequest;
-        const col = this.db.getCollection<IAppRequest>("AppRequests");
-        col.insert(request);
+        const col = this.db.getCollection("AppRequests");
+        col.insert(formatted);
+
+        const colRaw = this.db.getCollection("AppRequestsRaw");
+        colRaw.insert(request);
         console.log(
           `[${chalk.cyan(name)}]: (${chalk.green(
             request.data.baseData.name
@@ -90,8 +147,11 @@ export class LokiDataStore implements IDataStore {
       }
       case "AppTraces": {
         const trace = event as IAppTrace;
-        const col = this.db.getCollection<IAppTrace>("AppTraces");
-        col.insert(trace);
+        const col = this.db.getCollection("AppTraces");
+        col.insert(formatted);
+
+        const colRaw = this.db.getCollection("AppTracesRaw");
+        colRaw.insert(trace);
         console.log(`[${chalk.yellow(name)}]: Tracked`);
         break;
       }

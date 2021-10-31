@@ -1,9 +1,10 @@
 import express from "express";
 import * as http from "http";
 import { ApplicationInsightsConfiguration } from "./ApplicationInsightsConfiguration";
-import { TRACK_ENDPOINT } from "./Constants";
+import { EXECUTE_QUERY_ENDPOINT, TRACK_ENDPOINT } from "./Constants";
 import { IDataStore } from "./datastore/IDataStore";
 import { LokiDataStore } from "./datastore/LokiDataStore";
+import QueryHandler from "./handlers/QueryHandler";
 import TrackHandler from "./handlers/TrackHandler";
 
 export default class ApplicationInsightsServer {
@@ -15,9 +16,13 @@ export default class ApplicationInsightsServer {
   ) {
     const dataStore = new LokiDataStore(this.configuration.dbPath);
     const trackHandler = new TrackHandler(dataStore, this.configuration);
+    const queryHandler = new QueryHandler(dataStore, this.configuration);
     const app = express();
     app.post(TRACK_ENDPOINT, (req, res) =>
       trackHandler.handleRequest(req, res)
+    );
+    app.get(EXECUTE_QUERY_ENDPOINT, (req: any, res: express.Response) =>
+      queryHandler.handleRequest(req, res)
     );
     this.server = http.createServer(app);
     this.dataStore = dataStore;
@@ -38,7 +43,6 @@ export default class ApplicationInsightsServer {
 
   async start() {
     await this.beforeStart();
-
     await new Promise<void>((resolve, reject) => {
       const port = this.configuration.port;
       this.server.listen(port, resolve).on("error", reject);

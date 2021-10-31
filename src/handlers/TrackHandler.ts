@@ -3,8 +3,9 @@ import { EOL } from "os";
 import { unzip } from "zlib";
 import { ApplicationInsightsConfiguration } from "../ApplicationInsightsConfiguration";
 import { IDataStore } from "../datastore/IDataStore";
+import { IQueryHandler } from "./IQueryHandler";
 
-class TrackHandler {
+class TrackHandler implements IQueryHandler {
   private dataStore: IDataStore;
   constructor(
     dataStore: IDataStore,
