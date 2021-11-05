@@ -6,6 +6,8 @@ export class ApplicationInsightsConfiguration {
     public readonly dbPath: string,
     public readonly appMetrics: boolean,
     public readonly appTraces: boolean,
-    public readonly appRequests: boolean
+    public readonly appRequests: boolean,
+    public readonly appDependencies: boolean,
+    public readonly appExceptions: boolean
   ) {}
 }

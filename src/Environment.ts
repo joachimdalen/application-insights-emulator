@@ -11,7 +11,9 @@ args
   .option(["s", "silent"], "Optional. Disable logging to onsole")
   .option(["", "noMetrics"], "Track app metrics")
   .option(["", "noTraces"], "Track app traces")
-  .option(["", "noRequests"], "Track app requests");
+  .option(["", "noRequests"], "Track app requests")
+  .option(["", "noExceptions"], "Track app exceptions")
+  .option(["", "noDependencies"], "Track app dependencies");
 
 export default class Environment {
   private flags = args.parse(process.argv);
@@ -44,6 +46,18 @@ export default class Environment {
   }
   public trackAppRequests(): boolean {
     if (this.flags.noRequests !== undefined) {
+      return false;
+    }
+    return true;
+  }
+  public trackAppExceptions(): boolean {
+    if (this.flags.noExceptions !== undefined) {
+      return false;
+    }
+    return true;
+  }
+  public trackAppDependencies(): boolean {
+    if (this.flags.noDependencies !== undefined) {
       return false;
     }
     return true;

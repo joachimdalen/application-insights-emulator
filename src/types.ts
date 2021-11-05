@@ -72,3 +72,13 @@ export interface IAppTrace {
     baseData: AppInMessageData;
   };
 }
+export interface IAppDependency {
+  name: "AppDependencies";
+  time: string;
+  iKey: string;
+  tags?: DynamicBody;
+  data: {
+    baseType: string;
+    baseData: any;
+  };
+}

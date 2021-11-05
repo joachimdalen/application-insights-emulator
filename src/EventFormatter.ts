@@ -22,6 +22,7 @@ class EventFormatter {
   private _noFlatMap: string[] = [
     'data.baseData.properties',
     'data.baseData.metrics',
+    'data.baseData.exceptions',
   ]
 
   public formatEvent(event: any): DynamicObject {

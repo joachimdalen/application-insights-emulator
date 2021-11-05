@@ -19,8 +19,11 @@ async function main() {
     path.join(location, DB_NAME),
     env.trackAppMetrics(),
     env.trackAppTraces(),
-    env.trackAppRequests()
+    env.trackAppRequests(),
+    env.trackAppDependencies(),
+    env.trackAppExceptions()
   );
+  console.log(config)
   const server = new ApplicationInsightsServer(config);
 
   await server

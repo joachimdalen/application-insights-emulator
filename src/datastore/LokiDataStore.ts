@@ -1,7 +1,7 @@
 import { IDataStore } from './IDataStore'
 import Loki from 'lokijs'
 import { stat } from 'fs'
-import { IAppMetric, IAppRequest, IAppTrace } from '../types'
+import { IAppDependency, IAppMetric, IAppRequest, IAppTrace } from '../types'
 import chalk from 'chalk'
 import EventFormatter from '../EventFormatter'
 import QueryParser from '../query/QueryParser'
@@ -114,6 +114,23 @@ export class LokiDataStore implements IDataStore {
         indices: ['iKey'],
       })
     }
+    if (this.db.getCollection('AppDependencies') === null) {
+      this.db.addCollection('AppDependencies', {
+        indices: ['iKey'],
+      })
+      this.db.addCollection('AppDependenciesRaw', {
+        indices: ['iKey'],
+      })
+    }
+
+    if (this.db.getCollection('AppExceptions') === null) {
+      this.db.addCollection('AppExceptions', {
+        indices: ['iKey'],
+      })
+      this.db.addCollection('AppExceptionsRaw', {
+        indices: ['iKey'],
+      })
+    }
 
     await new Promise<void>((resolve, reject) => {
       this.db.saveDatabase((err) => {
@@ -163,6 +180,26 @@ export class LokiDataStore implements IDataStore {
         const colRaw = this.db.getCollection('AppTracesRaw')
         colRaw.insert(trace)
         console.log(`[${chalk.yellow(name)}]: Tracked`)
+        break
+      }
+      case 'AppDependencies': {
+        const dependency = event as IAppDependency
+        const col = this.db.getCollection('AppDependencies')
+        col.insert(formatted)
+
+        const colRaw = this.db.getCollection('AppDependenciesRaw')
+        colRaw.insert(dependency)
+        console.log(`[${chalk.magentaBright(name)}]: Tracked`)
+        break
+      }
+      case 'AppExceptions': {
+        const dependency = event as IAppDependency
+        const col = this.db.getCollection('AppExceptions')
+        col.insert(formatted)
+
+        const colRaw = this.db.getCollection('AppExceptionsRaw')
+        colRaw.insert(dependency)
+        console.log(`[${chalk.redBright(name)}]: Tracked`)
         break
       }
     }

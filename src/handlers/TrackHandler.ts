@@ -50,6 +50,21 @@ class TrackHandler implements IQueryHandler {
                 }
                 break
               }
+              case 'AppDependencies':{
+                if (this.configuration.appDependencies) {
+                  this.dataStore.trackEvent(jsonEvent)
+                }
+                break
+              }
+              case 'AppExceptions':{
+                if (this.configuration.appExceptions) {
+                  this.dataStore.trackEvent(jsonEvent)
+                }
+                break
+              }
+              default: {
+                console.log("Nope " + name);
+              }
             }
           }
         }
