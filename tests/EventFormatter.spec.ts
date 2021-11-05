@@ -44,23 +44,24 @@ describe("EventFormatter", () => {
     it("should strip and rename tags", () => {
       const ef = new EventFormatter();
       const formatted = ef.formatEvent(testObj);
-      expect(formatted).to.have.property("cloud_RoleInstance");
-      expect(formatted).to.have.property("operation_Id");
-      expect(formatted).to.have.property("operation_Name");
-      expect(formatted).to.have.property("location_Ip");
-      expect(formatted).to.have.property("sdkVersion");
+      console.log(JSON.stringify(formatted, null,2))
+      expect(formatted).to.have.property("AppRoleInstance");
+      expect(formatted).to.have.property("OperationId");
+      expect(formatted).to.have.property("OperationName");
+      expect(formatted).to.have.property("ClientIP");
+      expect(formatted).to.have.property("SdkVersion");
     });
   });
   describe("#Properties", () => {
-    it("should rename properties to customDimensions", () => {
+    it("should rename properties to Properties", () => {
       const ef = new EventFormatter();
       const formatted = ef.formatEvent(testObj);
-      expect(formatted).to.have.property("customDimensions");
+      expect(formatted).to.have.property("Properties");
     });
-    it("should keep original properties in customDimensions", () => {
+    it("should keep original properties in Properties", () => {
       const ef = new EventFormatter();
       const formatted = ef.formatEvent(testObj);
-      expect(formatted.customDimensions).to.eql({
+      expect(formatted.Properties).to.eql({
         HttpMethod: "GET",
         LogLevel: "Information",
         InvocationId: "ee8eb64f-eea9-4223-a081-927bacc9ce6c",
@@ -79,12 +80,12 @@ describe("EventFormatter", () => {
     it("should rename type", () => {
       const ef = new EventFormatter();
       const formatted = ef.formatEvent(testObj);
-      expect(formatted.eventType).to.equal("AppRequests");
+      expect(formatted.EventType).to.equal("AppRequests");
     });
     it("should rename responseCode", () => {
       const ef = new EventFormatter();
       const formatted = ef.formatEvent(testObj);
-      expect(formatted.resultCode).to.equal("400");
+      expect(formatted.ResultCode).to.equal("400");
     });
   });
 });

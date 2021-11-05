@@ -5,6 +5,18 @@ require('@kusto/language-service-next/bridge')
 require('@kusto/language-service-next/Kusto.Language.Bridge')
 require('@kusto/language-service/Kusto.JavaScript.Client')
 
+import {
+  InvalidColumnDetails,
+  InvalidColumnError,
+} from '../errors/InvalidColumnError'
+import { DefinitionGenerator } from './definitions/DefinitionGenerator'
+import {
+  appDependencies,
+  appMetrics,
+  appRequests,
+  appSystemEvents,
+  appTraces,
+} from './definitions/TableDefinitions'
 import Code = Kusto.Language
 import Symbols = Kusto.Language.Symbols
 interface LokiQueryResult {
@@ -43,16 +55,11 @@ class QueryParser {
     if (!f) throw new Error('Failed to parse tables')
 
     const dd: Symbols.Symbol[] = [
-      new Symbols.TableSymbol.$ctor3(
-        'AppMetrics',
-        this.toBridgeList([
-          new Symbols.ColumnSymbol(
-            'a',
-            Symbols.ScalarTypes.GetSymbol('real'),
-            null,
-          ),
-        ]),
-      ),
+      DefinitionGenerator.generateTable(appSystemEvents),
+      DefinitionGenerator.generateTable(appDependencies),
+      DefinitionGenerator.generateTable(appTraces),
+      DefinitionGenerator.generateTable(appRequests),
+      DefinitionGenerator.generateTable(appMetrics),
     ]
 
     var globals = Code.GlobalState?.Default?.WithDatabase(
@@ -65,7 +72,23 @@ class QueryParser {
     if (ii) {
       console.log(toArray(ii))
     }
-    if (jj) console.log(toArray(jj))
+    if (jj && jj.Count > 0) {
+      console.log(jj)
+      const colErrs = toArray(jj).map((d) => {
+        const dd: InvalidColumnDetails = {
+          end: d.End,
+          length: d.Length,
+          start: d.Start,
+          category: d.Category === null ? undefined : d.Category,
+          code: d.Code === null ? undefined : d.Code,
+          description: d.Description === null ? undefined : d.Description,
+          message: d.Message === null ? undefined : d.Message,
+          severity: d.Severity === null ? undefined : d.Severity,
+        }
+        return dd
+      })
+      throw new InvalidColumnError('Invalid columns', colErrs)
+    }
     if (parsed) {
       return this.buildQuery(parsed)
     }

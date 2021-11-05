@@ -16,33 +16,24 @@ export default class QueryResponseFormatter {
 
   private createResponse(columns: any, rows: any): Result {
     return {
-      headers: {
-        'x-ms-request-id': 'todo',
-        'x-ms-correlation-request-id': 'todo',
-      },
-      body: {
-        tables: [
-          {
-            name: 'PrimaryResult',
-            columns,
-            rows,
-          },
-        ],
-      },
+      tables: [
+        {
+          name: 'PrimaryResult',
+          columns,
+          rows,
+        },
+      ],
     }
   }
 }
 
 interface Result {
-  headers: { [key: string]: any }
-  body: {
-    tables: {
+  tables: {
+    name: string
+    columns: {
       name: string
-      columns: {
-        name: string
-        type: string
-      }[]
-      rows: any[][]
+      type: string
     }[]
-  }
+    rows: any[][]
+  }[]
 }

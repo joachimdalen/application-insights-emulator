@@ -5,6 +5,7 @@ import { IAppMetric, IAppRequest, IAppTrace } from '../types'
 import chalk from 'chalk'
 import EventFormatter from '../EventFormatter'
 import QueryParser from '../query/QueryParser'
+import { InvalidColumnError } from '../errors/InvalidColumnError'
 
 export class LokiDataStore implements IDataStore {
   private readonly db: Loki
@@ -42,48 +43,34 @@ export class LokiDataStore implements IDataStore {
 
   public async runQuery(query: string) {
     return await new Promise<any>((resolve, reject) => {
-      /*       const col = this.db.getCollection("AppMetrics");
-      // const tx = col.getTransform("ByKey");
-      // console.log(tx);
-      // if (tx === undefined) {
-      //
-      // }
-      console.log(appId);
-      //this.addTransforms(col);
-      const result = col
-        .chain()
-        .find({ iKey: { $eq: appId } })
-        //.find({ cloud_RoleInstance: "dev-desktop.(none)" })
-        .limit(10)
-        .data();
-      console.log(result); */
-      const result = this.queryParser.Parse(query)
-      if (result) {
-        const itemResult = result.query
+      try {
+        const result = this.queryParser.Parse(query)
+        if (result) {
+          const itemResult = result.query
 
-        if (result.selectedColumns) {
-          const mapped = itemResult.map((f: any) => {
-            let obj2: { [key: string]: any } = {}
-            Object.keys(f).map((k) => {
-              if (result.selectedColumns?.includes(k)) {
-                obj2[k] = f[k]
-              }
+          if (result.selectedColumns) {
+            const mapped = itemResult.map((f: any) => {
+              let obj2: { [key: string]: any } = {}
+              Object.keys(f).map((k) => {
+                if (result.selectedColumns?.includes(k)) {
+                  obj2[k] = f[k]
+                }
+              })
+              return obj2
             })
-            return obj2
-          })
-          resolve(mapped)
+            resolve(mapped)
+          } else {
+            resolve(result?.query)
+          }
         } else {
-          resolve(result?.query)
+          resolve([])
         }
-      } else {
-        resolve([])
+      } catch (error) {
+        if(error instanceof InvalidColumnError){
+          console.log('INVALID ERROR');
+        }
+        reject(error)
       }
-
-      // try {
-
-      // } catch (error) {
-      //   reject(error);
-      // }
     })
   }
 

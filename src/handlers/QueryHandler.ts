@@ -1,6 +1,7 @@
 import { Request, Response } from 'express'
 import { ApplicationInsightsConfiguration } from '../ApplicationInsightsConfiguration'
 import { IDataStore } from '../datastore/IDataStore'
+import { InvalidColumnError } from '../errors/InvalidColumnError'
 import QueryResponseFormatter from '../formatters/QueryResponseFormatter'
 import { IQueryHandler } from './IQueryHandler'
 import { AnalyticsQueryPayload } from './payloads/AnalyticsQueryPayload'
@@ -37,11 +38,21 @@ class QueryHandler implements IQueryHandler {
         res.status(404).end()
       }
 
-      const formatted = new QueryResponseFormatter().format(result)
+      const formatted = new QueryResponseFormatter().format(result);
+      res.setHeader('x-ms-request-id', 'todo');
+      res.setHeader('x-ms-correlation-request-id', 'todo');
+
       res.json(formatted).status(200).end()
     } catch (error) {
-      console.error(error)
-      res.status(500).end()
+      if (error instanceof InvalidColumnError) {
+        res.status(400).json(error).end()
+        console.log('Returning 400')
+        return
+      } else {
+        console.log('Returning 500'); 
+        console.error(error)
+        res.status(500).end()
+      }
     }
   }
 }
