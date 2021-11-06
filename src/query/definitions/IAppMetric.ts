@@ -1,0 +1,36 @@
+export interface IAppMetric {
+  AppRoleInstance: string;
+  AppRoleName: string;
+  AppVersion: string;
+  ClientBrowser: string;
+  ClientCity: string;
+  ClientCountryOrRegion: string;
+  ClientIP: string;
+  ClientModel: string;
+  ClientOS: string;
+  ClientStateOrProvince: string;
+  ClientType: string;
+  IKey: string;
+  ItemCount: number;
+  Max: number;
+  Min: number;
+  Name: string;
+  OperationId: string;
+  OperationName: string;
+  ParentId: string;
+  Properties: any;
+  ResourceGUID: string;
+  _ResourceId: string;
+  SDKVersion: string;
+  SessionId: string;
+  SourceSystem: string;
+  _SubscriptionId: string;
+  Sum: number;
+  SyntheticSource: string;
+  TenantId: string;
+  TimeGenerated: number;
+  Type: string;
+  UserAccountId: string;
+  UserAuthenticatedId: string;
+  UserId: string;
+}

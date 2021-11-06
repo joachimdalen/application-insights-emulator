@@ -1,0 +1,37 @@
+export interface IAppTrace {
+  AppRoleInstance: string;
+  AppRoleName: string;
+  AppVersion: string;
+  ClientBrowser: string;
+  ClientCity: string;
+  ClientCountryOrRegion: string;
+  ClientIP: string;
+  ClientModel: string;
+  ClientOS: string;
+  ClientStateOrProvince: string;
+  ClientType: string;
+  IKey: string;
+  ItemCount: number;
+  Measurements: any;
+  Message: string;
+  OperationId: string;
+  OperationName: string;
+  ParentId: string;
+  Properties: any;
+  ReferencedItemId: string;
+  ReferencedType: string;
+  ResourceGUID: string;
+  _ResourceId: string;
+  SDKVersion: string;
+  SessionId: string;
+  SeverityLevel: number;
+  SourceSystem: string;
+  _SubscriptionId: string;
+  SyntheticSource: string;
+  TenantId: string;
+  TimeGenerated: Date;
+  Type: string;
+  UserAccountId: string;
+  UserAuthenticatedId: string;
+  UserId: string;
+}

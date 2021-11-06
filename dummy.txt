@@ -1,0 +1,216 @@
+import * as fs from 'fs';
+import * as path from 'path';
+
+import { app, ipcMain } from 'electron';
+import express from 'express';
+import {
+  AppInTypes,
+  IAppMetric,
+  IAppRequest,
+  IAppTrace,
+} from 'main/types/applicationInsightsTypes';
+
+import * as loki from 'lokijs';
+import { ISettingService } from './settingService';
+import { Channels } from '../../channels';
+
+export interface IApplicationInsightsService {
+  getConnectionString(appId: string): Promise<string>;
+}
+export class ApplicationInsightsService implements IApplicationInsightsService {
+  private readonly trackEndpoint: string = '/v2/track';
+
+  private readonly port: number = 111;
+
+  private appInstance: express.Express;
+
+  private settingService: ISettingService;
+
+  private database?: LokiConstructor;
+
+  constructor(settingService: ISettingService) {
+    const app = express();
+    this.appInstance = app;
+    this.settingService = settingService;
+  }
+
+  /*   private logData(dataRow: IAppRequest) {
+    switch (dataRow.name) {
+      case 'AppRequests': {
+        const baseData = dataRow.data.baseData as AppInRequestData;
+        console.log(
+          `[${dataRow.time}] (${dataRow.name}): ${baseData.name} - ${baseData.responseCode}`
+        );
+        break;
+      }
+      case 'AppTraces': {
+        const baseData = dataRow.data.baseData as AppInMessageData;
+        console.log(`[${dataRow.time}] (${dataRow.name}): ${baseData.message}`);
+        break;
+      }
+    }
+  } */
+
+  public async getConnectionString(appId: string): Promise<string> {
+    const settings = await this.settingService.getSettings();
+    const host = `http://localhost:${settings?.appInsightsPort || this.port}/`;
+    return `InstrumentationKey=${appId};IngestionEndpoint=${host};LiveEndpoint=${host};ProfilerEndpoint=${host};SnapshotEndpoint=${host};`;
+  }
+
+  private async createIfNotExists(path: string) {
+    try {
+      await fs.promises.stat(path);
+    } catch (error) {
+      await fs.promises.mkdir(path, { recursive: true });
+    }
+  }
+
+  /*   private async getDataDir(keyId: string): Promise<string> {
+    const userDataPath = app.getPath('userData');
+    const tempPath = path.join(userDataPath, 'appdata', keyId, 'app-insights');
+    await this.createIfNotExists(tempPath);
+    return tempPath;
+  } */
+
+  /*   private async appendLine(event: IAppRequest): Promise<void> {
+    const dir = await this.getDataDir(event.iKey);
+    const filePath = path.join(dir, `${event.name}.json`);
+
+    await fs.promises.appendFile(filePath, JSON.stringify(event));
+  } */
+
+  private async logLine(event: any): Promise<void> {
+    if (this.database === undefined) {
+      console.warn('Not initialized');
+      return;
+    }
+    const { name } = event;
+    switch (name) {
+      case 'AppMetrics': {
+        const col = this.database.getCollection<IAppMetric>('AppMetrics');
+        col.insert(event);
+        break;
+      }
+      case 'AppRequests': {
+        const col = this.database.getCollection<IAppRequest>('AppRequests');
+        col.insert(event);
+        break;
+      }
+      case 'AppTraces': {
+        const col = this.database.getCollection<IAppTrace>('AppTraces');
+        col.insert(event);
+        break;
+      }
+    }
+    this.database.save();
+  }
+
+  private async initialize(): Promise<void> {
+    const userDataPath = app.getPath('userData');
+    const tempPath = path.join(userDataPath, 'app-insights');
+    await this.createIfNotExists(tempPath);
+    const dbPath = path.join(tempPath, 'appin.db');
+
+    try {
+      await fs.promises.stat(dbPath);
+      await new Promise<void>((resolve, reject) => {
+        this.database = new loki.default(dbPath);
+        this.database.loadDatabase({}, (dbError) => {
+          if (dbError) {
+            reject(dbError);
+          } else {
+            resolve();
+          }
+        });
+      });
+    } catch (error) {
+      this.database = new loki.default(dbPath);
+      this.database.addCollection<IAppMetric>('AppMetrics', {
+        indices: ['iKey'],
+      });
+      this.database.addCollection<IAppTrace>('AppTraces', {
+        indices: ['iKey'],
+      });
+      this.database.addCollection<IAppRequest>('AppRequests', {
+        indices: ['iKey'],
+      });
+      this.database.save();
+    }
+  }
+
+  public async start() {
+    ipcMain.handle(Channels.RUN_APPIN_QUERY, async (_, query: string) => {
+      const queryResult = query;
+      return queryResult;
+    });
+
+    /* const mappings : {[key:string]: string;} = {
+      "customDimentions": "data.baseData.properties"
+    }
+
+    const getString = (item:string) => {
+      if(mappings[item]) return mappings[item];
+      return item;
+    } */
+
+    const settings = await this.settingService.getSettings();
+    await this.initialize();
+
+    // try {
+    //   const res = this.database?.getCollection('AppTraces').find({
+    //     'data.baseData.properties.prop__operationId':
+    //       '742fbdbf-cce9-48fc-bb84-362a09e4e943',
+    //   });
+
+    //   console.log('Result');
+    //   console.log(JSON.stringify(res, null, 4));
+    // } catch (error) {
+    //   console.error(error);
+    // }
+    // if (settings && settings.appInsightsEnabled) {
+    //   this.appInstance.post(
+    //     this.trackEndpoint,
+    //     (req: express.Request, _: express.Response) => {
+    //       const body: Uint8Array[] = [];
+    //       req.on('data', (data) => {
+    //         body.push(data);
+    //       });
+    //       req.on('end', () => {
+    //         unzip(Buffer.concat(body), async (err, buffer) => {
+    //           if (err) {
+    //             console.error(err);
+    //           } else {
+    //             /*   const wrapper =
+    //               '[' + buffer.toString().split(EOL).join(',') + ']';
+
+    //             const items: any[] = JSON.parse(wrapper);
+
+    //             items.forEach((item) => this.logData(item)); */
+
+    //             const lines = buffer.toString().split(EOL);
+
+    //             for (const event of lines) {
+    //               // await this.appendLine(JSON.parse(event));
+    //               this.logLine(JSON.parse(event));
+    //             }
+    //           }
+    //         });
+    //       });
+    //     }
+    //   );
+    //   this.appInstance.get(
+    //     '/api/profiles/:appId/appId',
+    //     (_: express.Request, res: express.Response) => {
+    //       console.log('Profile req');
+    //       res.send('123');
+    //     }
+    //   );
+
+    //   this.appInstance.listen(settings.appInsightsPort || this.port, () => {
+    //     console.log(
+    //       `Listening on port ${settings?.appInsightsPort}` || this.port
+    //     );
+    //   });
+    // }
+  }
+}
