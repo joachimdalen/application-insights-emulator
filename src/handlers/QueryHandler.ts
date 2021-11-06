@@ -34,7 +34,7 @@ class QueryHandler implements IQueryHandler {
       const query = body.query
       const result = await this.dataStore.runQuery(query)
 
-      if (result === undefined || result?.length === 0) {
+      if (result === undefined || result?.query === 0) {
         res.status(404).end()
       }
 

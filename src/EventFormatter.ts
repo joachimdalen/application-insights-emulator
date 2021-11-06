@@ -7,16 +7,18 @@ class EventFormatter {
   private _keyMapping: {
     [key: string]: string
   } = {
-    time: 'timestamp',
-    'data.baseData.responseCode': 'resultCode',
-    name: 'eventType',
+    time: 'TimeGenerated',
+    'data.baseData.responseCode': 'ResultCode',
+    name: 'Type',
     'data.baseData.properties': 'Properties',
     ClientIp: 'ClientIP',
+    SdkVersion: 'SDKVersion',
+    Duration: 'DurationMs',
   }
   private _valueMapping: {
     [key: string]: (value: DynamicObject) => object
   } = {
-    tags: this.formatTags,
+    tags: (val) => this.formatTags(val),
   }
   private _prefixStrip: string[] = ['tags.', 'data.', 'baseData.']
   private _noFlatMap: string[] = [
@@ -102,7 +104,8 @@ class EventFormatter {
               keyParts[0],
             )}${StringExtensions.toPascalCase(keyParts[1])}`
           : StringExtensions.toPascalCase(keyParts[0])
-      parsed[newKey] = val
+      const keyName = this._keyMapping[newKey] || newKey
+      parsed[keyName] = val
     })
 
     return parsed

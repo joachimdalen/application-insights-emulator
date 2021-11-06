@@ -12,6 +12,7 @@ import {
 import { DefinitionGenerator } from './definitions/DefinitionGenerator'
 import {
   appDependencies,
+  appExceptions,
   appMetrics,
   appRequests,
   appSystemEvents,
@@ -19,7 +20,7 @@ import {
 } from './definitions/TableDefinitions'
 import Code = Kusto.Language
 import Symbols = Kusto.Language.Symbols
-interface LokiQueryResult {
+export interface LokiQueryResult {
   collection: string
   query: any
   selectedColumns?: string[]
@@ -60,6 +61,7 @@ class QueryParser {
       DefinitionGenerator.generateTable(appTraces),
       DefinitionGenerator.generateTable(appRequests),
       DefinitionGenerator.generateTable(appMetrics),
+      DefinitionGenerator.generateTable(appExceptions)
     ]
 
     var globals = Code.GlobalState?.Default?.WithDatabase(
